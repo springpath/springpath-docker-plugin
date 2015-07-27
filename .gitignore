@@ -28,4 +28,4 @@ _testmain.go
 *.prof
 
 # main binary.
-springpath-docker-volume
+springpath-docker-plugin
