@@ -51,9 +51,11 @@ func main() {
 
 	log.Println("springpath volume driver listening on", config.Sock)
 
+	// XXX Clean shutdown using a goroutine for accepts and a
+	// channel to handle close.
+	// https://github.com/braintree/manners
 	http.Serve(listener, http.DefaultServeMux)
 	if err != nil {
 		log.Fatalln("http serve failed", err)
 	}
-
 }

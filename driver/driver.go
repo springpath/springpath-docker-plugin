@@ -9,8 +9,7 @@ import "log"
 const dockerPluginManifestJSON = `
 {
 	"Implements" : [ "VolumeDriver" ]
-}
-`
+}`
 
 const dockerVersionMimeType = "application/vnd.docker.plugins.v1+json"
 
@@ -24,7 +23,7 @@ type pathFn func(string) (string, error)
 
 type pluginHandler struct {
 	http.Handler
-	VMap *volume.VolumeMap
+	VMap volume.VolumeDriver
 	Fn   interface{} // one of nameFn or pathFn. sigh.
 }
 
@@ -65,7 +64,7 @@ func (h pluginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func Register(mux *http.ServeMux, volMap *volume.VolumeMap) {
+func Register(mux *http.ServeMux, volMap volume.VolumeDriver) {
 	// http server.
 	mux.HandleFunc("/Plugin.Activate", pluginActivate)
 	mux.Handle("/VolumeDriver.Create", pluginHandler{Fn: volMap.Create, VMap: volMap})
