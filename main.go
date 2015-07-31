@@ -6,6 +6,7 @@ import "net"
 import "log"
 import "github.com/springpath/springpath-docker-plugin/driver"
 import "github.com/springpath/springpath-docker-plugin/volume"
+import "os"
 
 // Global State.
 type Config struct {
@@ -13,6 +14,16 @@ type Config struct {
 	StateFile      string
 	ClusterAddress string
 	MountBase      string
+}
+
+// Clean up socket when we exit.
+func socketCleanup(sock string) {
+	_, err := os.Stat(sock)
+
+	if err != nil {
+		os.Remove(sock)
+		log.Println("cleaning up socket", sock)
+	}
 }
 
 func main() {
@@ -33,12 +44,16 @@ func main() {
 
 	listener, err := net.Listen("unix", config.Sock)
 	if err != nil {
-		log.Fatal("failed to start http server", err)
+		log.Fatalf("failed to bind %s\n", err)
 	}
+	defer listener.Close()
+	defer socketCleanup(config.Sock)
 
 	log.Println("springpath volume driver listening on", config.Sock)
-	err = http.Serve(listener, http.DefaultServeMux)
+
+	http.Serve(listener, http.DefaultServeMux)
 	if err != nil {
-		log.Fatal("http serve failed", err)
+		log.Fatalln("http serve failed", err)
 	}
+
 }
