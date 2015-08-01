@@ -88,12 +88,15 @@ func TestAPI(t *testing.T) {
 
 	ops := []string{"Create", "Remove", "Mount", "Unmount", "Path"}
 
+	if err := activate(server.URL + "/"); err != nil {
+		t.Fatalf("activation failed", err)
+	}
+
 	// write tests.
 	for _, op := range ops {
 		if _, err := do(server.URL+"/", op, "test"); err != nil {
 			t.Fatalf(op, err)
 		}
-
 	}
 
 	server.Close()
