@@ -4,6 +4,10 @@ import "net/http/httptest"
 import "net/http"
 import "testing"
 import "github.com/springpath/springpath-docker-plugin/volume"
+import "bytes"
+import "encoding/json"
+import "errors"
+import "io/ioutil"
 
 type DummyVolMap struct {
 	volume.VolumeDriver
@@ -31,15 +35,49 @@ func (m *DummyVolMap) Path(name string) (mp string, err error) {
 	return name, m.retErr
 }
 
-func callNameOp(url string, op string, name string) (err error) {
+func do(baseurl string, op string, name string) (mp string, err error) {
+	var request, response Message
+	request.Name = name
+	var reqbody, respbody []byte
+	var resp = new(http.Response)
+
+	if reqbody, err = json.Marshal(request); err != nil {
+		return
+	}
+
+	url := baseurl + "VolumeDriver." + op
+	if resp, err = http.Post(url, dockerVersionMimeType, bytes.NewReader(reqbody)); err != nil {
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return mp, errors.New("HttpError" + resp.Status)
+	}
+
+	if respbody, err = ioutil.ReadAll(resp.Body); err != nil {
+		return
+	}
+
+	if err = json.Unmarshal(respbody, response); err != nil {
+		return
+	}
+
+	return response.Mountpoint, response.Err
 }
 
-func callPathOp(url string, op string, name string) (mp string, err error) {
-	return
-}
+func activate(baseurl string) error {
+	url := baseurl + "Plugin.Activate"
+	resp, err := http.Post(url, dockerVersionMimeType, nil)
 
-func callActivate() error {
+	if err != nil {
+		return err
+	}
 
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("HttpError" + resp.Status)
+	}
+
+	return nil
 }
 
 func TestAPI(t *testing.T) {
@@ -48,12 +86,15 @@ func TestAPI(t *testing.T) {
 	Register(mux, &vmap)
 	server := httptest.NewServer(mux)
 
+	ops := []string{"Create", "Remove", "Mount", "Unmount", "Path"}
+
 	// write tests.
-	callNameOp(server.URL, "Create", "test")
-	callNameOp(server.URL, "Remove", "test")
-	callPathOp(server.URL, "Mount", "test")
-	callNameOp(server.URL, "Unmount", "test")
-	callPathOp(server.URL, "Path", "test")
+	for _, op := range ops {
+		if _, err := do(server.URL+"/", op, "test"); err != nil {
+			t.Fatalf(op, err)
+		}
+
+	}
 
 	server.Close()
 	return
