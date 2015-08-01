@@ -58,7 +58,7 @@ func do(baseurl string, op string, name string) (mp string, err error) {
 		return
 	}
 
-	if err = json.Unmarshal(respbody, response); err != nil {
+	if err = json.Unmarshal(respbody, &response); err != nil {
 		return
 	}
 

@@ -18,9 +18,6 @@ func pluginActivate(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(dockerPluginManifestJSON))
 }
 
-type nameFn func(string) error
-type pathFn func(string) (string, error)
-
 type pluginHandler struct {
 	http.Handler
 	VMap volume.VolumeDriver
@@ -52,9 +49,9 @@ func (h pluginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch fn := h.Fn.(type) {
 	default:
 		log.Fatalf("Unknown type %T", fn)
-	case nameFn:
+	case func(string) error:
 		response.Err = fn(request.Name)
-	case pathFn:
+	case func(string) (string, error):
 		response.Mountpoint, response.Err = fn(request.Name)
 	}
 
