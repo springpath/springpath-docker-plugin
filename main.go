@@ -13,6 +13,7 @@ type Config struct {
 	Sock           string
 	StateFile      string
 	ClusterAddress string
+	NFSServer      string
 	MountBase      string
 }
 
@@ -32,13 +33,17 @@ func main() {
 	// parse command line.
 	flag.StringVar(&config.Sock, "sockpath", "/run/docker/plugins/springpath.sock", "unix domain socket docker talks to")
 	flag.StringVar(&config.StateFile, "statefile", "/SYSTEM/volume-driver.json", "springpath volume driver metadata")
-	flag.StringVar(&config.ClusterAddress, "clusteraddress", "localhost", "address of the springpath i/o dispatcher")
+	flag.StringVar(&config.ClusterAddress, "clusteraddress", "localhost", "address of the springpath cluster master")
+	flag.StringVar(&config.NFSServer, "nfsd", "localhost", "address of the springpath nfs server")
 	flag.StringVar(&config.MountBase, "mountbase", "/run/springpath-docker-volumes", "base path for springpath volume mount points")
 	flag.Parse()
 
 	log.Println("starting docker volume plugin")
 
-	var volmap = new(volume.VolumeMap)
+	var volmap, err = volume.New(config.ClusterAddress, config.NFSServer, config.MountBase)
+	if err != nil {
+		log.Fatalf("Failed to connect to cluster backend")
+	}
 
 	driver.Register(http.DefaultServeMux, volmap)
 

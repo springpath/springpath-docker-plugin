@@ -4,8 +4,8 @@ import "sync"
 
 // Package Volume implements the volume management
 // by calling child processes.
-// Ideally, we ought to be implementing direct system calls/RPC calls.
-// as appropriate.
+//
+// XXX implement direct system calls/RPC calls, to mount etc.
 
 // Individual mounted volumes.
 type Volume struct {
@@ -15,6 +15,7 @@ type Volume struct {
 	Size          uint64 // size of the datastore in bytes.
 	Mounted       bool   // locally mounted.
 	Alive         bool   // scvmclient is reachable.
+	Created       bool   // volume exists.
 }
 
 type VolumeDriver interface {
@@ -30,13 +31,19 @@ type VolumeMap struct {
 	VolumeDriver
 
 	volumes    map[string]Volume
-	rootPath   string
+	nfsServer  string
+	mountBase  string
 	routerHost string
 	sync.Mutex
 }
 
-func New(routerHost string, rootPath string) (m *VolumeMap, err error) {
-	m = &VolumeMap{volumes: make(map[string]Volume), rootPath: rootPath, routerHost: routerHost}
+func New(routerHost string, nfsServer string, mountBase string) (m *VolumeMap, err error) {
+	m = &VolumeMap{
+		volumes:    make(map[string]Volume),
+		mountBase:  mountBase,
+		routerHost: routerHost,
+		nfsServer:  nfsServer,
+	}
 	return m, nil
 }
 

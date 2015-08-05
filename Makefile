@@ -1,6 +1,6 @@
 springpath-docker-plugin:
-	go build $@
-	go install $@
+	go build .
+	go install .
 
 clean:
 	go clean
