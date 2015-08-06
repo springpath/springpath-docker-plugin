@@ -1,6 +1,13 @@
 package volume
 
 import "sync"
+import "errors"
+
+var ErrVolumeCreate = errors.New("Failed to Create Volume")
+var ErrVolumeRemove = errors.New("Failed to Remove Volume")
+var ErrVolumeMount = errors.New("Failed to Mount Volume")
+var ErrVolumeUnmount = errors.New("Failed to Unmount Volume")
+var ErrVolumeGet = errors.New("Failed to find specified Volume")
 
 // Package Volume implements the volume management
 // by calling child processes.
@@ -10,7 +17,7 @@ import "sync"
 // Individual mounted volumes.
 type Volume struct {
 	Name          string // docker volume name
-	DatastorePath string // springpath datastore name + path
+	DatastorePath string // datastore NFS url
 	MountedPath   string // path where datastore is currently mounted
 	Size          uint64 // size of the datastore in bytes.
 	Mounted       bool   // locally mounted.
@@ -30,10 +37,11 @@ type VolumeDriver interface {
 type VolumeMap struct {
 	VolumeDriver
 
-	volumes    map[string]Volume
-	nfsServer  string
-	mountBase  string
-	routerHost string
+	volumes     map[string]Volume
+	nfsServer   string
+	mountBase   string
+	routerHost  string
+	initialized bool
 	sync.Mutex
 }
 
@@ -47,28 +55,51 @@ func New(routerHost string, nfsServer string, mountBase string) (m *VolumeMap, e
 	return m, nil
 }
 
+func Initialize() error {
+	return nil
+}
+
 func (m *VolumeMap) Create(name string) error {
 
-	v := Volume{Name: name}
-
-	// all datastores are at the root.
-	v.DatastorePath = "/" + v.Name
+	v := Volume{
+		Name:          name,
+		DatastorePath: m.nfsUrl(name),
+		MountedPath:   m.mountPoint(name),
+	}
 
 	// Add the volume to our list.
 	m.Lock()
 	defer m.Unlock()
 	m.volumes[v.Name] = v
 
-	return nil
-}
+	cmd := m.doCreate(&v)
+	if err := cmd.Run(); err != nil {
+		v.Created = false
+		return ErrVolumeCreate
+	}
 
-func (m *VolumeMap) Unmount(name string) error {
+	v.Created = true
+
 	return nil
 }
 
 func (m *VolumeMap) Remove(name string) error {
 	m.Lock()
 	defer m.Unlock()
+
+	v, ok := m.volumes[name]
+	if !ok {
+		return ErrVolumeRemove
+	}
+
+	if v.Mounted {
+		return ErrVolumeRemove
+	}
+
+	cmd := m.doRemove(&v)
+	if err := cmd.Run(); err != nil {
+		return ErrVolumeRemove
+	}
 
 	delete(m.volumes, name)
 
@@ -90,5 +121,40 @@ func (m *VolumeMap) Mount(name string) (mountpoint string, err error) {
 
 	v := m.volumes[name]
 
+	if v.Mounted {
+		return v.MountedPath, nil
+	} else if !v.Created {
+		return "", ErrVolumeMount
+	}
+
+	cmd := m.doMount(&v)
+	if err := cmd.Run(); err != nil {
+		return "", nil
+	}
+
 	return v.MountedPath, nil
+}
+
+func (m *VolumeMap) Unmount(name string) error {
+	m.Lock()
+	defer m.Unlock()
+
+	v, ok := m.volumes[name]
+
+	if !ok {
+		return ErrVolumeGet
+	}
+
+	if !v.Mounted {
+		return ErrVolumeUnmount
+	}
+
+	cmd := m.doUmount(&v)
+	if err := cmd.Run(); err != nil {
+		return ErrVolumeUnmount
+	}
+
+	v.Mounted = false
+
+	return nil
 }
