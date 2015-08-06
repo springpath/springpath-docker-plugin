@@ -12,7 +12,6 @@ import "path"
 // Global State.
 type Config struct {
 	Sock           string
-	StateFile      string
 	ClusterAddress string
 	NFSServer      string
 	MountBase      string
@@ -33,14 +32,14 @@ func main() {
 
 	// parse command line.
 	flag.StringVar(&config.Sock, "sockpath", "/run/docker/plugins/springpath.sock", "unix domain socket docker talks to")
-	flag.StringVar(&config.StateFile, "statefile", "/SYSTEM/volume-driver.json", "springpath volume driver metadata")
 	flag.StringVar(&config.ClusterAddress, "clusteraddress", "", "address of the springpath cluster master")
 	flag.StringVar(&config.NFSServer, "nfsd", "localhost", "address of the springpath nfs server")
 	flag.StringVar(&config.MountBase, "mountbase", "/run/springpath-docker-volumes", "base path for springpath volume mount points")
 	flag.Parse()
 
 	if config.ClusterAddress == "" {
-		log.Fatal("clusterAddress must be set")
+		flag.Usage()
+		log.Fatal("clusteraddress must be set")
 	}
 
 	log.Println("starting docker volume plugin")
@@ -53,7 +52,7 @@ func main() {
 	driver.Register(http.DefaultServeMux, volmap)
 
 	if err := os.MkdirAll(path.Dir(config.Sock), 0700); err != nil {
-		log.Fatal("failed to create socket parent directory", err)
+		log.Fatal("failed to create socket dir: ", err)
 	}
 
 	listener, err := net.Listen("unix", config.Sock)

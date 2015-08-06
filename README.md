@@ -1,18 +1,15 @@
-Docker Volume Management for Springpath
-=======================================
+# Docker Volume Management for Springpath
 
 springpath-volume-driver is a storage driver for
 the clustered storage solution provided by
 http://springpathinc.com
 
-How it Works
-============
+# How it Works
 
 Container Run -> Docker -> VolumeDriver Mount -> Container Started.
 Container Stop -> Docker -> VolumeDriver Unmount -> Container Stopped.
 
-Installation
-------------
+# Installation
 
 Installing the plugin requires docker being installed, and a golang
 enviroment set up. On Ubuntu, this is provided by the golang-go

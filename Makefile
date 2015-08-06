@@ -1,4 +1,4 @@
-springpath-docker-plugin:
+build:
 	go build .
 	go install .
 
@@ -7,3 +7,5 @@ clean:
 
 test:
 	go test ./...
+
+.PHONY: build clean test
