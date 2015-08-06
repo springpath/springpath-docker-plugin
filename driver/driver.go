@@ -42,7 +42,7 @@ func (h pluginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("req %p: url %s, body %s\n", r, requestPath, requestBody)
+	log.Printf("req %p: url %s, body %s", r, requestPath, requestBody)
 
 	json.Unmarshal(requestBody, &request)
 

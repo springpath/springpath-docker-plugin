@@ -33,10 +33,14 @@ func main() {
 	// parse command line.
 	flag.StringVar(&config.Sock, "sockpath", "/run/docker/plugins/springpath.sock", "unix domain socket docker talks to")
 	flag.StringVar(&config.StateFile, "statefile", "/SYSTEM/volume-driver.json", "springpath volume driver metadata")
-	flag.StringVar(&config.ClusterAddress, "clusteraddress", "localhost", "address of the springpath cluster master")
+	flag.StringVar(&config.ClusterAddress, "clusteraddress", "", "address of the springpath cluster master")
 	flag.StringVar(&config.NFSServer, "nfsd", "localhost", "address of the springpath nfs server")
 	flag.StringVar(&config.MountBase, "mountbase", "/run/springpath-docker-volumes", "base path for springpath volume mount points")
 	flag.Parse()
+
+	if config.ClusterAddress == "" {
+		log.Fatal("clusterAddress must be set")
+	}
 
 	log.Println("starting docker volume plugin")
 

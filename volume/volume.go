@@ -52,11 +52,8 @@ func New(routerHost string, nfsServer string, mountBase string) (m *VolumeMap, e
 		routerHost: routerHost,
 		nfsServer:  nfsServer,
 	}
+	m.initialized = true
 	return m, nil
-}
-
-func Initialize() error {
-	return nil
 }
 
 func (m *VolumeMap) Create(name string) error {
