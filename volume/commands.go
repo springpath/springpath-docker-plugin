@@ -5,6 +5,7 @@ package volume
 
 import "os/exec"
 import "path"
+import "log"
 
 func (m *VolumeMap) mountPoint(name string) string {
 	return path.Join(m.mountBase, name)
@@ -36,4 +37,14 @@ func (m *VolumeMap) doRemove(v *Volume) *exec.Cmd {
 		"--ns", "datastore",
 		"--cmd", "create",
 		"--name", v.Name)
+}
+
+func doCommand(cmd *exec.Cmd) error {
+	log.Println("cmd %p: %s", cmd.Args)
+	if op, err := cmd.CombinedOutput(); err != nil {
+		log.Println("cmd %p: %v", err)
+		log.Println("cmd %p: output %s", op)
+		return err
+	}
+	return nil
 }

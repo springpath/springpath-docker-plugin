@@ -18,7 +18,7 @@ Installing the plugin requires docker being installed, and a golang
 enviroment set up. On Ubuntu, this is provided by the golang-go
 package. A version >= 1.4.2 is recommended.
 
-This plugin requires the as yet unrelease version of the docker engine.
+This plugin requires the as yet unreleased version of the docker engine.
 
 Install docker using the usual methods, and replace the docker engine
 with the pre-release version.

@@ -7,6 +7,7 @@ import "log"
 import "github.com/springpath/springpath-docker-plugin/driver"
 import "github.com/springpath/springpath-docker-plugin/volume"
 import "os"
+import "path"
 
 // Global State.
 type Config struct {
@@ -50,6 +51,10 @@ func main() {
 	}
 
 	driver.Register(http.DefaultServeMux, volmap)
+
+	if err := os.MkdirAll(path.Dir(config.Sock), 0700); err != nil {
+		log.Fatal("failed to create socket parent directory", err)
+	}
 
 	listener, err := net.Listen("unix", config.Sock)
 	if err != nil {

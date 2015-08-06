@@ -2,6 +2,7 @@ package volume
 
 import "sync"
 import "errors"
+import "log"
 
 var ErrVolumeCreate = errors.New("Failed to Create Volume")
 var ErrVolumeRemove = errors.New("Failed to Remove Volume")
@@ -52,6 +53,7 @@ func New(routerHost string, nfsServer string, mountBase string) (m *VolumeMap, e
 		routerHost: routerHost,
 		nfsServer:  nfsServer,
 	}
+	log.Printf("initializing volume driver with routerHost=%s and nfsServer=%s", m.routerHost, m.nfsServer)
 	m.initialized = true
 	return m, nil
 }
@@ -70,7 +72,7 @@ func (m *VolumeMap) Create(name string) error {
 	m.volumes[v.Name] = v
 
 	cmd := m.doCreate(&v)
-	if err := cmd.Run(); err != nil {
+	if err := doCommand(cmd); err != nil {
 		v.Created = false
 		return ErrVolumeCreate
 	}
@@ -94,7 +96,7 @@ func (m *VolumeMap) Remove(name string) error {
 	}
 
 	cmd := m.doRemove(&v)
-	if err := cmd.Run(); err != nil {
+	if err := doCommand(cmd); err != nil {
 		return ErrVolumeRemove
 	}
 
@@ -125,9 +127,11 @@ func (m *VolumeMap) Mount(name string) (mountpoint string, err error) {
 	}
 
 	cmd := m.doMount(&v)
-	if err := cmd.Run(); err != nil {
+	if err := doCommand(cmd); err != nil {
 		return "", nil
 	}
+
+	v.Mounted = true
 
 	return v.MountedPath, nil
 }
@@ -147,7 +151,7 @@ func (m *VolumeMap) Unmount(name string) error {
 	}
 
 	cmd := m.doUmount(&v)
-	if err := cmd.Run(); err != nil {
+	if err := doCommand(cmd); err != nil {
 		return ErrVolumeUnmount
 	}
 
