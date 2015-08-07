@@ -26,7 +26,7 @@ type pluginHandler struct {
 
 type Message struct {
 	Name       string `json:"omitempty"`
-	Err        error  `json:"omitempty"`
+	Err        string `json:"omitempty"`
 	Mountpoint string `json:"omitempty"`
 }
 
@@ -46,16 +46,23 @@ func (h pluginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	json.Unmarshal(requestBody, &request)
 
+	var respErr error
+
 	switch fn := h.Fn.(type) {
 	default:
 		log.Fatalf("Unknown type %T", fn)
 	case func(string) error:
-		response.Err = fn(request.Name)
+		respErr = fn(request.Name)
+		response.Err = respErr.Error()
 	case func(string) (string, error):
-		response.Mountpoint, response.Err = fn(request.Name)
+		response.Mountpoint, respErr = fn(request.Name)
+		response.Err = respErr.Error()
 	}
 
 	resp, err := json.Marshal(response)
+
+	log.Printf("%+v", response)
+	log.Printf("%v |||| %v", resp, err)
 
 	w.Write(resp)
 	return
