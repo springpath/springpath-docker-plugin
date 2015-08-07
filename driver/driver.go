@@ -25,9 +25,9 @@ type pluginHandler struct {
 }
 
 type Message struct {
-	Name       string `json:"omitempty"`
-	Err        string `json:"omitempty"`
-	Mountpoint string `json:"omitempty"`
+	Name       string `json:",omitempty"`
+	Err        string `json:",omitempty"`
+	Mountpoint string `json:",omitempty"`
 }
 
 // Common portions of all the plugin endpoints.
@@ -59,10 +59,7 @@ func (h pluginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response.Err = respErr.Error()
 	}
 
-	resp, err := json.Marshal(response)
-
-	log.Printf("%+v", response)
-	log.Printf("%v |||| %v", resp, err)
+	resp, err := json.Marshal(&response)
 
 	w.Write(resp)
 	return

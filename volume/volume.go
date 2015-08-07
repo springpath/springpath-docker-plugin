@@ -9,6 +9,7 @@ var ErrVolumeRemove = errors.New("Failed to Remove Volume")
 var ErrVolumeMount = errors.New("Failed to Mount Volume")
 var ErrVolumeUnmount = errors.New("Failed to Unmount Volume")
 var ErrVolumeGet = errors.New("Failed to find specified Volume")
+var ErrVolumeNotReady = errors.New("Volume is not ready")
 
 // Package Volume implements the volume management
 // by calling child processes.
@@ -109,7 +110,14 @@ func (m *VolumeMap) Path(name string) (mountpoint string, err error) {
 	m.Lock()
 	defer m.Unlock()
 
-	v := m.volumes[name]
+	v, ok := m.volumes[name]
+	if !ok {
+		return "", ErrVolumeGet
+	}
+
+	if !v.Mounted {
+		return "", ErrVolumeNotReady
+	}
 
 	return v.MountedPath, nil
 }
