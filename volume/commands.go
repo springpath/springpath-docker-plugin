@@ -40,10 +40,10 @@ func (m *VolumeMap) doRemove(v *Volume) *exec.Cmd {
 }
 
 func doCommand(cmd *exec.Cmd) error {
-	log.Printf("cmd %p: %s", cmd.Args)
+	log.Printf("cmd %p: %s", cmd, cmd.Args)
 	if op, err := cmd.CombinedOutput(); err != nil {
-		log.Printf("cmd %p: %v", err)
-		log.Printf("cmd %p: output %s", op)
+		log.Printf("cmd %p: %v", cmd, err)
+		log.Printf("cmd %p: output %s", cmd, op)
 		return err
 	}
 	return nil
