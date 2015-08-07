@@ -7,12 +7,11 @@ import "os"
 
 var ErrVolumeNotCreated = errors.New("Volume is not created")
 var ErrVolumeNotFound = errors.New("Volume does not exist")
-var ErrVolumeCreate = errors.New("Failed to Create Volume")
-var ErrVolumeRemove = errors.New("Failed to Remove Volume")
-var ErrVolumeMount = errors.New("Failed to Mount Volume")
-var ErrVolumeUnmount = errors.New("Failed to Unmount Volume")
-var ErrVolumeGet = errors.New("Failed to find specified Volume")
+var ErrVolumeNotMounted = errors.New("Volume is not mounted")
+var ErrVolumeNotRemoved = errors.New("Failed to Remove Volume")
+var ErrVolumeNotUnmounted = errors.New("Failed to Unmount Volume")
 var ErrVolumeNotReady = errors.New("Volume is not ready")
+var ErrVolumeInUse = errors.New("Volume is in use")
 
 // Package Volume implements the volume management
 // by calling child processes.
@@ -93,7 +92,7 @@ func (m *VolumeMap) Create(name string) error {
 	cmd := m.doCreate(v)
 	if err := doCommand(cmd); err != nil {
 		v.Created = false
-		return ErrVolumeCreate
+		return ErrVolumeNotCreated
 	}
 
 	v.Created = true
@@ -107,16 +106,16 @@ func (m *VolumeMap) Remove(name string) error {
 
 	v, ok := m.volumes[name]
 	if !ok {
-		return ErrVolumeRemove
+		return ErrVolumeNotFound
 	}
 
 	if v.Mounted {
-		return ErrVolumeRemove
+		return ErrVolumeInUse
 	}
 
 	cmd := m.doRemove(v)
 	if err := doCommand(cmd); err != nil {
-		return ErrVolumeRemove
+		return ErrVolumeNotRemoved
 	}
 
 	delete(m.volumes, name)
@@ -130,11 +129,11 @@ func (m *VolumeMap) Path(name string) (mountpoint string, err error) {
 
 	v, ok := m.volumes[name]
 	if !ok {
-		return "", ErrVolumeGet
+		return "", ErrVolumeNotFound
 	}
 
 	if err := os.MkdirAll(v.MountedPath, 0700); err != nil {
-		return "", ErrVolumeGet
+		return "", ErrVolumeNotReady
 	}
 
 	return v.MountedPath, nil
@@ -158,7 +157,7 @@ func (m *VolumeMap) Mount(name string) (mountpoint string, err error) {
 
 	cmd := m.doMount(v)
 	if err := doCommand(cmd); err != nil {
-		return "", ErrVolumeMount
+		return "", ErrVolumeNotMounted
 	}
 
 	v.Mounted = true
@@ -173,16 +172,16 @@ func (m *VolumeMap) Unmount(name string) error {
 	v, ok := m.volumes[name]
 
 	if !ok {
-		return ErrVolumeGet
+		return ErrVolumeNotFound
 	}
 
 	if !v.Mounted {
-		return ErrVolumeUnmount
+		return ErrVolumeNotUnmounted
 	}
 
 	cmd := m.doUmount(v)
 	if err := doCommand(cmd); err != nil {
-		return ErrVolumeUnmount
+		return ErrVolumeNotMounted
 	}
 
 	v.Mounted = false
