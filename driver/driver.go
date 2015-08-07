@@ -59,6 +59,8 @@ func (h pluginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	log.Printf("req %p: %+v", r, response)
+
 	resp, err := json.Marshal(response)
 
 	w.Write(resp)

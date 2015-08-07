@@ -3,7 +3,10 @@ package volume
 import "sync"
 import "errors"
 import "log"
+import "os"
 
+var ErrVolumeNotCreated = errors.New("Volume is not created")
+var ErrVolumeNotFound = errors.New("Volume does not exist")
 var ErrVolumeCreate = errors.New("Failed to Create Volume")
 var ErrVolumeRemove = errors.New("Failed to Remove Volume")
 var ErrVolumeMount = errors.New("Failed to Mount Volume")
@@ -39,7 +42,7 @@ type VolumeDriver interface {
 type VolumeMap struct {
 	VolumeDriver
 
-	volumes     map[string]Volume
+	volumes     map[string]*Volume
 	nfsServer   string
 	mountBase   string
 	routerHost  string
@@ -54,31 +57,40 @@ const DefaultVolumeSize = 10 * 1024 * 1024 * 1024
 
 func New(routerHost string, nfsServer string, mountBase string) (m *VolumeMap, err error) {
 	m = &VolumeMap{
-		volumes:    make(map[string]Volume),
+		volumes:    make(map[string]*Volume),
 		mountBase:  mountBase,
 		routerHost: routerHost,
 		nfsServer:  nfsServer,
 	}
+
 	log.Printf("initializing volume driver with routerHost=%s and nfsServer=%s", m.routerHost, m.nfsServer)
 	m.initialized = true
 	return m, nil
 }
 
 func (m *VolumeMap) Create(name string) error {
+	var v *Volume
 
-	v := Volume{
-		Name:          name,
-		DatastorePath: m.nfsUrl(name),
-		MountedPath:   m.mountPoint(name),
-		Size:          DefaultVolumeSize,
-	}
-
-	// Add the volume to our list.
 	m.Lock()
 	defer m.Unlock()
+
+	v, ok := m.volumes[name]
+	if ok && v.Created {
+		// volume already exists and is
+		// created.
+		return nil
+	} else {
+		v = &Volume{
+			Name:          name,
+			DatastorePath: m.nfsUrl(name),
+			MountedPath:   m.mountPoint(name),
+			Size:          DefaultVolumeSize,
+		}
+	}
+
 	m.volumes[v.Name] = v
 
-	cmd := m.doCreate(&v)
+	cmd := m.doCreate(v)
 	if err := doCommand(cmd); err != nil {
 		v.Created = false
 		return ErrVolumeCreate
@@ -102,7 +114,7 @@ func (m *VolumeMap) Remove(name string) error {
 		return ErrVolumeRemove
 	}
 
-	cmd := m.doRemove(&v)
+	cmd := m.doRemove(v)
 	if err := doCommand(cmd); err != nil {
 		return ErrVolumeRemove
 	}
@@ -121,8 +133,8 @@ func (m *VolumeMap) Path(name string) (mountpoint string, err error) {
 		return "", ErrVolumeGet
 	}
 
-	if !v.Mounted {
-		return "", ErrVolumeNotReady
+	if err := os.MkdirAll(v.MountedPath, 0700); err != nil {
+		return "", ErrVolumeGet
 	}
 
 	return v.MountedPath, nil
@@ -132,17 +144,21 @@ func (m *VolumeMap) Mount(name string) (mountpoint string, err error) {
 	m.Lock()
 	defer m.Unlock()
 
-	v := m.volumes[name]
+	v, ok := m.volumes[name]
+
+	if !ok {
+		return "", ErrVolumeNotFound
+	}
 
 	if v.Mounted {
 		return v.MountedPath, nil
 	} else if !v.Created {
-		return "", ErrVolumeMount
+		return "", ErrVolumeNotCreated
 	}
 
-	cmd := m.doMount(&v)
+	cmd := m.doMount(v)
 	if err := doCommand(cmd); err != nil {
-		return "", nil
+		return "", ErrVolumeMount
 	}
 
 	v.Mounted = true
@@ -164,7 +180,7 @@ func (m *VolumeMap) Unmount(name string) error {
 		return ErrVolumeUnmount
 	}
 
-	cmd := m.doUmount(&v)
+	cmd := m.doUmount(v)
 	if err := doCommand(cmd); err != nil {
 		return ErrVolumeUnmount
 	}

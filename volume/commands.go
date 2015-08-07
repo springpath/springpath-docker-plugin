@@ -13,7 +13,7 @@ func (m *VolumeMap) mountPoint(name string) string {
 }
 
 func (m *VolumeMap) nfsUrl(name string) string {
-	return path.Join(m.nfsServer+":", m.routerHost+":"+name)
+	return path.Join(m.nfsServer + ":" + m.routerHost + ":" + name)
 }
 
 func (m *VolumeMap) doMount(v *Volume) *exec.Cmd {
