@@ -46,20 +46,20 @@ func (h pluginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	json.Unmarshal(requestBody, &request)
 
-	var respErr error
-
 	switch fn := h.Fn.(type) {
 	default:
 		log.Fatalf("Unknown type %T", fn)
 	case func(string) error:
-		respErr = fn(request.Name)
-		response.Err = respErr.Error()
+		if err = fn(request.Name); err != nil {
+			response.Err = err.Error()
+		}
 	case func(string) (string, error):
-		response.Mountpoint, respErr = fn(request.Name)
-		response.Err = respErr.Error()
+		if response.Mountpoint, err = fn(request.Name); err != nil {
+			response.Err = err.Error()
+		}
 	}
 
-	resp, err := json.Marshal(&response)
+	resp, err := json.Marshal(response)
 
 	w.Write(resp)
 	return

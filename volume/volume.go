@@ -47,6 +47,11 @@ type VolumeMap struct {
 	sync.Mutex
 }
 
+// The Volume plugin interface does not allow
+// to pass a size in. Lets create 10G volumes
+// for now.
+const DefaultVolumeSize = 10 * 1024 * 1024 * 1024
+
 func New(routerHost string, nfsServer string, mountBase string) (m *VolumeMap, err error) {
 	m = &VolumeMap{
 		volumes:    make(map[string]Volume),
@@ -65,6 +70,7 @@ func (m *VolumeMap) Create(name string) error {
 		Name:          name,
 		DatastorePath: m.nfsUrl(name),
 		MountedPath:   m.mountPoint(name),
+		Size:          DefaultVolumeSize,
 	}
 
 	// Add the volume to our list.

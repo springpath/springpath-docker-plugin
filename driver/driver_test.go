@@ -62,7 +62,14 @@ func do(baseurl string, op string, name string) (mp string, err error) {
 		return
 	}
 
-	return response.Mountpoint, response.Err
+	var respErr error
+	if response.Err != "" {
+		respErr = errors.New(response.Err)
+	} else {
+		respErr = nil
+	}
+
+	return response.Mountpoint, respErr
 }
 
 func activate(baseurl string) error {

@@ -6,6 +6,7 @@ package volume
 import "os/exec"
 import "path"
 import "log"
+import "fmt"
 
 func (m *VolumeMap) mountPoint(name string) string {
 	return path.Join(m.mountBase, name)
@@ -24,19 +25,13 @@ func (m *VolumeMap) doUmount(v *Volume) *exec.Cmd {
 }
 
 func (m *VolumeMap) doCreate(v *Volume) *exec.Cmd {
-	return exec.Command("sysmtool", "--host", m.routerHost,
-		"--port", "9090",
-		"--ns", "datastore",
-		"--cmd", "create",
-		"--name", v.Name)
+	return exec.Command("storfstool", "--", "-n", m.routerHost,
+		"--dscreate", v.Name, "--size", fmt.Sprint(v.Size))
 }
 
 func (m *VolumeMap) doRemove(v *Volume) *exec.Cmd {
-	return exec.Command("sysmtool", "--host", m.routerHost,
-		"--port", "9090",
-		"--ns", "datastore",
-		"--cmd", "create",
-		"--name", v.Name)
+	return exec.Command("storfstool", "--", "-n", m.routerHost,
+		"--dsremove", v.Name)
 }
 
 func doCommand(cmd *exec.Cmd) error {
