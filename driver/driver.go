@@ -30,7 +30,7 @@ type Message struct {
 	Mountpoint string `json:",omitempty"`
 }
 
-// Common portions of all the plugin endpoints.
+// Common Handler to all plugin endpoints.
 func (h pluginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var requestPath = r.URL.Path
 	var request, response Message

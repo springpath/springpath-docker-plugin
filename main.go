@@ -15,9 +15,9 @@ type Config struct {
 	ClusterAddress string
 	NFSServer      string
 	MountBase      string
+	StateFile      string
 }
 
-// Clean up socket when we exit.
 func socketCleanup(sock string) {
 	_, err := os.Stat(sock)
 
@@ -35,6 +35,7 @@ func main() {
 	flag.StringVar(&config.ClusterAddress, "clusteraddress", "", "address of the springpath cluster master")
 	flag.StringVar(&config.NFSServer, "nfsd", "localhost", "address of the springpath nfs server")
 	flag.StringVar(&config.MountBase, "mountbase", "/run/springpath-docker-volumes", "base path for springpath volume mount points")
+	flag.StringVar(&config.StateFile, "statefile", "/run/springpath-docker-volumes.state", "base path for springpath volume mount points")
 	flag.Parse()
 
 	if config.ClusterAddress == "" {
@@ -44,7 +45,10 @@ func main() {
 
 	log.Println("starting docker volume plugin")
 
-	var volmap, err = volume.New(config.ClusterAddress, config.NFSServer, config.MountBase)
+	var volmap, err = volume.New(config.ClusterAddress,
+		config.NFSServer,
+		config.MountBase,
+		config.StateFile)
 	if err != nil {
 		log.Fatalf("Failed to connect to cluster backend")
 	}
@@ -55,12 +59,13 @@ func main() {
 		log.Fatal("failed to create socket dir: ", err)
 	}
 
+	socketCleanup(config.Sock)
+
 	listener, err := net.Listen("unix", config.Sock)
 	if err != nil {
 		log.Fatalf("failed to bind %s\n", err)
 	}
 	defer listener.Close()
-	defer socketCleanup(config.Sock)
 
 	log.Println("springpath volume driver listening on", config.Sock)
 

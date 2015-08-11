@@ -17,7 +17,7 @@ func (m *VolumeMap) nfsUrl(name string) string {
 }
 
 func (m *VolumeMap) doMount(v *Volume) *exec.Cmd {
-	return exec.Command("mount", v.DatastorePath, v.MountedPath)
+	return exec.Command("mount", "-onolock", v.DatastorePath, v.MountedPath)
 }
 
 func (m *VolumeMap) doUmount(v *Volume) *exec.Cmd {

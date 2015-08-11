@@ -45,6 +45,7 @@ type VolumeMap struct {
 	nfsServer   string
 	mountBase   string
 	routerHost  string
+	stateFile   string
 	initialized bool
 	sync.Mutex
 }
@@ -54,12 +55,13 @@ type VolumeMap struct {
 // for now.
 const DefaultVolumeSize = 10 * 1024 * 1024 * 1024
 
-func New(routerHost string, nfsServer string, mountBase string) (m *VolumeMap, err error) {
+func New(routerHost string, nfsServer string, mountBase string, stateFile string) (m *VolumeMap, err error) {
 	m = &VolumeMap{
 		volumes:    make(map[string]*Volume),
 		mountBase:  mountBase,
 		routerHost: routerHost,
 		nfsServer:  nfsServer,
+		stateFile:  stateFile,
 	}
 
 	log.Printf("initializing volume driver with routerHost=%s and nfsServer=%s", m.routerHost, m.nfsServer)
@@ -84,6 +86,7 @@ func (m *VolumeMap) Create(name string) error {
 			DatastorePath: m.nfsUrl(name),
 			MountedPath:   m.mountPoint(name),
 			Size:          DefaultVolumeSize,
+			Created:       false,
 		}
 	}
 
@@ -91,8 +94,7 @@ func (m *VolumeMap) Create(name string) error {
 
 	cmd := m.doCreate(v)
 	if err := doCommand(cmd); err != nil {
-		v.Created = false
-		return ErrVolumeNotCreated
+		v.Created = true
 	}
 
 	v.Created = true
